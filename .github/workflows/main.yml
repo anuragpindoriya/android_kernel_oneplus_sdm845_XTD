@@ -1,4 +1,4 @@
-name: Build kernel For OP6/6T 
+name: Build OnePlus 6 and 6t KernelSU Kernel
 
 on:
   workflow_dispatch:
@@ -23,112 +23,42 @@ jobs:
       KERNEL_CMDLINE: "ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- O=out"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v2
         with:
           submodules: 'true'
           fetch-depth: 100
 
-
       - name: Set up ccache
-        uses: hendrikmuhs/ccache-action@v1.2.10
-
+        uses: hendrikmuhs/ccache-action@v1.2
 
       - name: Install dependencies
         run: |
-          sudo apt-get update -y
+          rm -rf KernelSU
+
+          rm -rf drivers/kernelsu
+
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+          sudo apt-get update -y 
           sudo apt install gcc-aarch64-linux-gnu -y
           sudo apt install gcc-arm-linux-gnueabi -y
           sudo apt install binutils make python3 ccache libssl-dev build-essential bc bison flex unzip libssl-dev ca-certificates xz-utils mkbootimg cpio device-tree-compiler git git-lfs jq -y
           curl -Ls $(curl -s https://api.github.com/repos/ZyCromerZ/Clang/releases/latest | grep "browser_download_url" | cut -d '"' -f 4) -o clang.tar.gz
           mkdir clang
           tar -xzvf clang.tar.gz -C clang
-
-
       - name: Get Time
         id: get_time
         run: echo "TIME=$(TZ=UTC-8 date +%m%d%H%M )" >> $GITHUB_ENV
 
-
-      - name: Remove Old KernelSU and Add New version of KernelSU
+      - name: Build Kernel-With-KernelSU
         run: |
-          set -x
-          rm -rf KernelSU
-          rm -rf drivers/kernelsu
-          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash - 
-
-
-      - name: Setup Environment For Kernel
-        run: |
+          
+          CONFIG_LOCALVERSION="-An-Unknown"
           export PATH=$(pwd)/clang/bin/:$PATH
-          export CC=clang
-          export CLANG_TRIPLE=aarch64-linux-gnu-
-          export CROSS_COMPILE=aarch64-linux-gnu-
-          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
-          export ARCH=arm64
-          export SUBARCH=arm64
-          export ANDROID_MAJOR_VERSION=r
-          export KCFLAGS=-w
-
-
-      - name: Create Kernel Name
-        run : |
-          latest_version_of_kernel_su=$(curl -s https://api.github.com/repos/tiann/KernelSU/releases/latest | jq -r '.tag_name')
-          timestamp=$(TZ=UTC-8 date +%Y%m%d%H%M)
-          final_tag="${latest_version_of_kernel_su}.${timestamp}"  # Consistent naming
-          echo "FINAL_TAG=$final_tag" >> $GITHUB_ENV  # Set only the necessary variable
-
-
-      - name: Start Build Kernel
-        run: |
           make $KERNEL_CMDLINE $KERNEL_DEFCONFIG CC="ccache clang"
-          make $KERNEL_CMDLINE CC="ccache clang" -j$(nproc --all) LOCALVERSION="-An-UNKNOWN-OP6-6T${{ env.FINAL_TAG }}-"
-
-
-      - name: Pack Kernel Image In AnyKernel3
-        run: |
-          # if [[ -f out/arch/arm64/boot/Image.gz ]]; then
-          #      cp out/arch/arm64/boot/Image.gz AK3/Image.gz
-          # fi
-          # if [ -f out/arch/arm64/boot/dts/qcom/sdmmagpie.dtb ]; then
-          #       cp out/arch/arm64/boot/dts/qcom/sdmmagpie.dtb AK3/dtb
-          # fi
-          # -- Remove AK3 folder from out
-          rm -rf out/AK3
-          
-          # -- Make Copy of AK3 in out
-          cp -r AK3 out/
-          
-          # -- Copy Kernel Image into AK3
-          cp out/arch/arm64/boot/Image out/AK3/Image
-          
-          # -- Copy DTB file from " ut/arch/arm64/boot/dts/qcom/ " to " out/AK3 "
-          if [ -f out/arch/arm64/boot/dts/qcom/sdmmagpie.dtb ]; then
-                 cp out/arch/arm64/boot/dts/qcom/sdmmagpie.dtb out/AK3/dtb
-          fi
-          
-          cd out/AK3
-          
-          # -- Create zip file of AnyKernel3
-          zip -r9 An-UNKNOWN-${{ env.FINAL_TAG }}-"$(/bin/date -u '+%Y%m%d-%H%M')".zip .
-          
-
-      - name: Releases Kernel TO Github
-        uses: "marvinpinto/action-automatic-releases@latest"
+          make $KERNEL_CMDLINE CC="ccache clang" -j$(nproc --all) LOCALVERSION="$CONFIG_LOCALVERSION"
+         
+      - name: Upload Kernel-SU
+        uses: actions/upload-artifact@v3
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          title: ${{ env.FINAL_TAG }}
-          automatic_release_tag: ${{ env.FINAL_TAG }}
-          prerelease: false
-          files: |
-            out/AK3/*.zip
-            out/arch/arm64/boot/Image.gz
-            
-
-      - name: Upload Kernel To Artifact
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: Out_folder_of_kernel
-          path: |
-                  out/arch/arm64/boot/Image.gz
-                  out/AK3/*.zip
-      
+          name: An-Unknown_kernel_op6-KSU-${{ steps.get_time.outputs.TIME }}
+          path: out/arch/arm64/*
