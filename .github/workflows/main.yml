@@ -59,7 +59,7 @@ jobs:
 
       - name: Setup Environment For Kernel
         run: |
-          export PATH=$(pwd)/proton-clang/bin/:$PATH
+          export PATH=$(pwd)/clang/bin/:$PATH
           export CC=clang
           export CLANG_TRIPLE=aarch64-linux-gnu-
           export CROSS_COMPILE=aarch64-linux-gnu-
