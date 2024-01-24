@@ -63,7 +63,7 @@ jobs:
           CONFIG_LOCALVERSION="-An-Unknown"
           export PATH=$(pwd)/clang/bin/:$PATH
           make $KERNEL_CMDLINE $KERNEL_DEFCONFIG CC="ccache clang"
-          make $KERNEL_CMDLINE CC="ccache clang" -j$(nproc --all) LOCALVERSION="-An-UNKNOWN-ANU--OP6-6T-${{ env.FINAL_TAG }}"
+          make $KERNEL_CMDLINE CC="ccache clang" -j$(nproc --all) LOCALVERSION="-An-UNKNOWN-😎-ANU-😎-OP6-6T-${{ env.FINAL_TAG }}"
       
       - name: Pack Kernel Image In AnyKernel3
         run: |
