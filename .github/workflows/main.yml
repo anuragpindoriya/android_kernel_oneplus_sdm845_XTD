@@ -37,7 +37,7 @@ jobs:
 
           rm -rf drivers/kernelsu
 
-          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s v0.9.5
           sudo apt-get update -y 
           sudo apt install gcc-aarch64-linux-gnu -y
           sudo apt install gcc-arm-linux-gnueabi -y
@@ -52,9 +52,9 @@ jobs:
       
       - name: Create Kernel Name
         run : |
-          latest_version_of_kernel_su=$(curl -s https://api.github.com/repos/tiann/KernelSU/releases/latest | jq -r '.tag_name')
+          
           timestamp=$(TZ=UTC-8 date +%Y%m%d%H%M)
-          final_tag="${latest_version_of_kernel_su}.${timestamp}"  # Consistent naming
+          final_tag="v0.9.5.${timestamp}"  # Consistent naming
           echo "FINAL_TAG=$final_tag" >> $GITHUB_ENV  # Set only the necessary variable
       
       - name: Build Kernel-With-KernelSU
